@@ -11,11 +11,7 @@ HTTP API:
   GET    /status
   GET    /config
   POST   /config
-  GET    /model-profiles
-  POST   /model-profiles
-  GET    /model-profiles/{id}
-  PUT    /model-profiles/{id}
-  DELETE /model-profiles/{id}
+  GET    /model-profiles  (+ POST / PUT / DELETE by id)
   GET    /sessions
   POST   /session/new
   GET    /session/{sid}
@@ -127,21 +123,18 @@ class AgentManager:
         from llmcore import reload_mykeys
         return [k for k in reload_mykeys()[0] if any(x in k for x in ("api", "config", "cookie"))]
 
-    def _profile_var(self, profile_id: int) -> str:
+    def _profile_at(self, profile_id: int) -> tuple[str, dict]:
         keys = self._profile_keys()
         if profile_id < 0 or profile_id >= len(keys):
             raise ValueError("profile not found")
         var = keys[profile_id]
         if "mixin" in var:
             raise ValueError("mixin profiles not supported here")
-        return var
-
-    def _profile_cfg(self, var: str) -> dict:
         from llmcore import reload_mykeys
         cfg = reload_mykeys()[0].get(var)
         if not isinstance(cfg, dict):
             raise ValueError("profile not editable")
-        return dict(cfg)
+        return var, dict(cfg)
 
     @staticmethod
     def _find_var_block_span(text: str, var_name: str) -> Optional[tuple[int, int]]:
@@ -161,6 +154,14 @@ class AgentManager:
                     return start, end
             i += 1
         return None
+
+    def _patch_var_block(self, text: str, var: str, cfg: Optional[dict] = None) -> str:
+        if not (span := self._find_var_block_span(text, var)):
+            raise ValueError(f"config block not found: {var}")
+        s, e = span
+        if cfg is None:
+            return text[:s].rstrip() + "\n" + text[e:].lstrip("\n")
+        return text[:s] + f"{var} = {self._format_py_dict(cfg)}\n" + text[e:]
 
     def _build_cfg(self, data: dict, existing: Optional[dict] = None, *, require_key: bool = True) -> dict:
         apibase, model = str(data.get("apibase") or "").strip(), str(data.get("model") or "").strip()
@@ -192,33 +193,21 @@ class AgentManager:
         return {"varName": var, "profileId": profiles[-1]["id"] if profiles else 0, "profiles": profiles}
 
     def get_model_profile(self, profile_id: int) -> dict:
-        var = self._profile_var(profile_id)
-        cfg = self._profile_cfg(var)
-        return {"id": profile_id, "varName": var, "model": cfg.get("model", ""), "apibase": cfg.get("apibase", ""),
-                "apikey": cfg.get("apikey", ""), "name": cfg.get("name", ""),
-                "max_retries": cfg.get("max_retries", 5), "connect_timeout": cfg.get("connect_timeout", 15),
-                "read_timeout": cfg.get("read_timeout", 300)}
+        var, cfg = self._profile_at(profile_id)
+        ks = ("model", "apibase", "apikey", "name", "max_retries", "connect_timeout", "read_timeout")
+        return {"id": profile_id, "varName": var, **{k: cfg.get(k, d) for k, d in zip(ks, ("", "", "", "", 5, 15, 300))}}
 
     def update_model_profile(self, profile_id: int, data: dict) -> dict:
-        var = self._profile_var(profile_id)
-        cfg = self._build_cfg(data, self._profile_cfg(var), require_key=False)
+        var, existing = self._profile_at(profile_id)
         text = self._mykey_file().read_text(encoding="utf-8")
-        span = self._find_var_block_span(text, var)
-        if not span:
-            raise ValueError(f"config block not found: {var}")
-        profiles = self._save_mykey_text(text[:span[0]] + f"{var} = {self._format_py_dict(cfg)}\n" + text[span[1]:])
+        profiles = self._save_mykey_text(self._patch_var_block(text, var, self._build_cfg(data, existing, require_key=False)))
         return {"varName": var, "profileId": profile_id, "profiles": profiles}
 
     def delete_model_profile(self, profile_id: int) -> dict:
         if len(self._profile_keys()) <= 1:
             raise ValueError("cannot delete the last profile")
-        var = self._profile_var(profile_id)
-        text = self._mykey_file().read_text(encoding="utf-8")
-        span = self._find_var_block_span(text, var)
-        if not span:
-            raise ValueError(f"config block not found: {var}")
-        new_text = text[:span[0]].rstrip() + "\n" + text[span[1]:].lstrip("\n")
-        profiles = self._save_mykey_text(new_text.rstrip() + "\n")
+        var, _ = self._profile_at(profile_id)
+        profiles = self._save_mykey_text(self._patch_var_block(self._mykey_file().read_text(encoding="utf-8"), var).rstrip() + "\n")
         return {"profileId": profile_id, "profiles": profiles}
 
     def ensure_ga_import_path(self) -> Path:

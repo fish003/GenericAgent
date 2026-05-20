@@ -73,20 +73,14 @@
 }
 
 /* —— 主题色板（素色：仅 accent 浅底）—— */
-html[data-theme="1"]{ --blue:var(--swatch-1); --blue-bg:color-mix(in srgb, var(--blue) 14%, var(--panel)); --blue-soft:color-mix(in srgb, var(--blue) 7%, var(--panel)); }
-html[data-theme="2"]{ --blue:var(--swatch-2); --blue-bg:color-mix(in srgb, var(--blue) 14%, var(--panel)); --blue-soft:color-mix(in srgb, var(--blue) 7%, var(--panel)); }
-html[data-theme="3"]{ --blue:var(--swatch-3); --blue-bg:color-mix(in srgb, var(--blue) 14%, var(--panel)); --blue-soft:color-mix(in srgb, var(--blue) 7%, var(--panel)); }
-html[data-theme="4"]{ --blue:var(--swatch-4); --blue-bg:color-mix(in srgb, var(--blue) 14%, var(--panel)); --blue-soft:color-mix(in srgb, var(--blue) 7%, var(--panel)); }
-html[data-theme="5"]{ --blue:var(--swatch-5); --blue-bg:color-mix(in srgb, var(--blue) 14%, var(--panel)); --blue-soft:color-mix(in srgb, var(--blue) 7%, var(--panel)); }
-html[data-theme="6"]{ --blue:var(--swatch-6); --blue-bg:color-mix(in srgb, var(--blue) 14%, var(--panel)); --blue-soft:color-mix(in srgb, var(--blue) 7%, var(--panel)); }
-html[data-theme="7"]{ --blue:var(--swatch-7); --blue-bg:color-mix(in srgb, var(--blue) 14%, var(--panel)); --blue-soft:color-mix(in srgb, var(--blue) 7%, var(--panel)); --on-accent:#1f2430; }
-html[data-theme="8"]{ --blue:var(--swatch-8); --blue-bg:color-mix(in srgb, var(--blue) 14%, var(--panel)); --blue-soft:color-mix(in srgb, var(--blue) 7%, var(--panel)); --on-accent:#ffffff; }
-
-/* logo 渐变随主题色 */
 html[data-theme]{
+  --blue-bg:color-mix(in srgb, var(--blue) 14%, var(--panel));
+  --blue-soft:color-mix(in srgb, var(--blue) 7%, var(--panel));
   --brand1:color-mix(in srgb, var(--blue) 40%, #ffc978);
   --brand2:var(--blue);
 }
+html[data-theme="7"]{ --on-accent:#1f2430; }
+html[data-theme="8"]{ --on-accent:#ffffff; }
 
 /* —— 外观：浅色（accent 轻 tint 页面/边框）—— */
 html[data-appearance="light"]:not([data-plain="1"])[data-theme]{

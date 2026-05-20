@@ -206,8 +206,10 @@ function selectLang(code) {
 function applyTheme(id) {
   const n = parseInt(id, 10);
   theme = (n >= 1 && n <= 8) ? String(n) : '1';
-  document.documentElement.dataset.theme = theme;
+  const root = document.documentElement;
+  root.dataset.theme = theme;
   localStorage.setItem(STORE.theme, theme);
+  root.style.setProperty('--blue', getComputedStyle(root).getPropertyValue(`--swatch-${theme}`).trim());
   document.querySelectorAll('#theme-swatches .swatch').forEach(el => {
     el.classList.toggle('sel', el.dataset.theme === theme);
   });
